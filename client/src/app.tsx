@@ -5,6 +5,8 @@ import { StepOne } from "./components/stepone";
 import { StepTwo } from "./components/steptwo";
 import nodeguiIcon from "../assets/nodegui.jpg";
 import css, {resolve} from 'styled-jsx/css'
+
+// @ts-ignore
 import Board from "./components/board";
 const minSize = { width: 500, height: 520 };
 const winIcon = new QIcon(nodeguiIcon);
