@@ -1,29 +1,40 @@
-import {Text, useEventHandler, View} from "@nodegui/react-nodegui";
+import {Image, Text, useEventHandler, View} from "@nodegui/react-nodegui";
 import React, {useCallback, useContext, useEffect, useMemo, useState} from "react";
 import Draughts from 'draughts';
-import {QListViewSignals, QMouseEvent, WidgetEventTypes} from "@nodegui/nodegui";
-
+import {QListViewSignals, QMouseEvent, WidgetEventTypes, QPushButton} from "@nodegui/nodegui";
+import crown from "../../assets/crown.png"
 const CheckersContext = React.createContext({});
 
 const Board = () => {
-    const draughts = Draughts();
+    const [draughts, setDraughts] = useState(Draughts());
 
     const [selected, setSelected] = useState(0);
-    const [possibleMoves, setPossibleMoves] = useState([]);
     const [position, setPosition] = useState(draughts.position());
 
     const getMovesForTile = (tile) => {
-        return draughts.moves().filter(x => x.from == tile).map(x => x.to-1)
+        return draughts.moves().filter(x => x.from == tile).map(x => x.to)
     }
 
-    useEffect( () => setPossibleMoves(getMovesForTile(selected)), [selected])
+
+    useEffect( () => {
+        draughts.load("W:W31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,9:B20")        // draughts.move({from: 33, to: 28})
+        // draughts.move({from: 20, to: 24})
+        setPosition(draughts.position())
+        // setDraughts(draughts)
+    }, [])
+
+    const possibleMoves = getMovesForTile(selected)
+
     console.log("POSITION", position)
+    console.log("Possible moves", draughts.moves())
     const handleTileClick = (number) => {
         console.log(`CLICKED ${number}, selected ${selected}`)
+        console.log(`ACTUAL POSITION`, position)
         if(possibleMoves?.find?.(x => x == number)){
             // const res = draughts.move(draughts.getLegalMoves(35)[0])
             draughts.move({from: selected, to: number})
             setPosition(draughts.position())
+            console.log(`MOVED ${selected} to ${number}`)
 
             // console.log(`SKOULD MOVE ${selected} to ${number}`)
             // draughts.move(`${selected}-${number+1}`)
@@ -62,7 +73,7 @@ const Board = () => {
     let tile_number_ = 0;
     const getChecker = (pos) =>
         // @ts-ignore
-        checkers[pos]
+        checkers.get(pos)
 
     const moveChecker = (oldPos, newPos) => {
         // @ts-ignore
@@ -81,7 +92,7 @@ const Board = () => {
                     <Text>{9 - rowNumber}</Text>
 
                     {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'].map((n, i) => {
-                        const color = (rowNumber % 2 ? i : i + 1) % 2 ? 'black' : 'white';
+                        const color = (rowNumber % 2 ? i : i + 1) % 2 ? 'white' : 'black';
                         if(color == 'black')
                             tile_number_++;
                         return <Tile
@@ -114,7 +125,8 @@ const BoardRow = ({rowNumber, startColor = 'white'}) =>
 const Tile = ({name, color, size=60, number, onClick, functions}) => {
     const {getChecker, moveChecker, selected, draughts, setSelected, possibleMoves, position} = functions;
     // const checker = useMemo( () => draughts.get(number), [position]);
-    const checker = position[number]
+    const checker = draughts.get(number)
+    const has_checker = ['b', 'w'].includes(checker.toLowerCase())
     const tileHandler = useEventHandler(
         {
             [WidgetEventTypes.MouseButtonPress]: () => {
@@ -141,16 +153,21 @@ const Tile = ({name, color, size=60, number, onClick, functions}) => {
             ${selected == number && number && checker != 0 ? 'border: 3px solid yellow;':''}
             ${possibleMoves?.find?.(x => number == x) ? 'border: 3px solid red;' : ''}
             `}>
-        <View style={`
+        {
+            has_checker &&
+            <View style={`
             position: absolute; 
-            background: ${checker == 'b' ? 'black' : checker == 'w' ? 'white' : ''};
+            background: ${checker.toLowerCase() == 'b' ? 'black' : checker.toLowerCase() == 'w' ? 'white' : ''};
             height: ${size * 0.7}px; 
             width: ${size * 0.7}px; 
             left: ${size * 0.15}px; 
             top: ${size * 0.15}px;
             border-radius: ${(size * 0.35) - 1};
+            ${checker.toUpperCase() == checker ? `border: 4px solid ${checker.toLowerCase() == 'b' ? 'white' : 'black'};` : ''}
            `}
-        />
+            />
+        }
+
     </View>;
 }
 
