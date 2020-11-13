@@ -3,8 +3,8 @@ import React, {useEffect, useMemo, useState} from "react";
 import Draughts from 'draughts';
 import {WidgetEventTypes} from "@nodegui/nodegui";
 import net from 'net';
+import {client} from "../tcp";
 
-let client = net.createConnection(9000);
 
 const Board = () => {
     const [draughts, setDraughts] = useState(Draughts());
