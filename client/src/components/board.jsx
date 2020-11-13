@@ -4,9 +4,9 @@ import Draughts from 'draughts';
 import {WidgetEventTypes} from "@nodegui/nodegui";
 import net from 'net';
 
-const Board = () => {
-    const client = net.createConnection(9000);
+let client = net.createConnection(9000);
 
+const Board = () => {
     const [draughts, setDraughts] = useState(Draughts());
 
     const [selected, setSelected] = useState(0);
