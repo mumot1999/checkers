@@ -21,33 +21,49 @@ export const App = () => {
     const [login, setLogin] = useState("");
 
     return (
-            <Window
-                windowIcon={winIcon}
-                windowTitle="Hello 👋🏽"
-                minSize={minSize}
-                styleSheet={styleSheet}
-            >
-                <View style={containerStyle}>
-                    {appState.loggedIn ? (
-                        <Board/>
-                    ) : (
+        <Window
+            windowIcon={winIcon}
+            windowTitle="Hello 👋🏽"
+            minSize={minSize}
+            styleSheet={styleSheet}
+        >
+            <View style={containerStyle}>
+                {appState.loggedIn ? (
+                    <View style={`
+                      flex: 1;
+              align-items: normal;
+              flex-direction: row;
+              `}>
                         <View>
-                            <Text style={`padding-bottom: 10px;`}>{`
+                            <Board/>
+                        </View>
+                        <View>
+                            <Text>
+                                Pokoje:
+                            </Text>
+                            {appState.rooms.map(room => (
+                                <Button text={room} />
+                            ))}
+                        </View>
+                    </View>
+                ) : (
+                    <View>
+                        <Text style={`padding-bottom: 10px;`}>{`
                                 <div style="font-weight: bold; font-size: 50px; ">
                                     <center style="align-content: center">Zaloguj się</center>
                                 </div>
                             `}</Text>
 
-                            <Text style={`font-weight: bold`}>
-                                Nazwa użytkownika:
-                            </Text>
-                            <LineEdit on={{textChanged: setLogin}} text={login}/>
+                        <Text style={`font-weight: bold`}>
+                            Nazwa użytkownika:
+                        </Text>
+                        <LineEdit on={{textChanged: setLogin}} text={login}/>
 
-                            <Button text={"Zaloguj się"} style={`margin-top: 10px;`} on={{clicked: () => app.login(login)}}/>
-                        </View>
-                    )}
-                </View>
-            </Window>
+                        <Button text={"Zaloguj się"} style={`margin-top: 10px;`} on={{clicked: () => app.login(login)}}/>
+                    </View>
+                )}
+            </View>
+        </Window>
     );
 }
 

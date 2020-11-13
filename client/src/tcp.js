@@ -11,6 +11,7 @@ const initialState = {
     host: 'localhost',
     port: 9000,
     checkerColor: '',
+    rooms: []
 }
 
 export const AppContext = createContext({appState: initialState, setAppState: undefined});
@@ -22,6 +23,10 @@ export const AppProvider = ({children}) => {
     useEffect( () => {
         client.on('data', function(raw_data) {
             const [action, data] = raw_data.toString().split("\n", 2);
+
+            if(action === 'rooms'){
+                setAppState(prevState => ({...prevState, rooms: data?.split(',') ?? []}))
+            }
             console.log('message was received', {action, data})
         });
     }, [])
