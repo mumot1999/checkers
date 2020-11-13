@@ -37,6 +37,7 @@ const Board = () => {
         if(possibleMoves?.find?.(x => x == number)){
             draughts.move({from: selected, to: number})
             setPosition(draughts.position())
+            client.write(draughts.fen())
         }
     }
 
