@@ -16,28 +16,92 @@
 #define SERVER_PORT 9000
 #define QUEUE_SIZE 5
 
-int* connections;
+
+struct room
+{
+    char name[30];
+    char fen[200];
+    struct connection* connections;
+};
+
+struct connection
+{
+    int connection_socket_descriptor;
+    char login[30];
+};
+
+struct connection* connections;
+struct room* rooms;
 
 struct thread_data_t
 {
     int connection_socket_descriptor;
 };
 
+bool isAction(char* x, char* action){
+    for (int i = 0; i < strlen(action); ++i) {
+        if(*(x+i) != action[i])
+            return 0;
+    }
+    return 1;
+}
+
+char *multiple(char *str, char *s2)
+{
+    int len;
+    char *s;
+    if (str != NULL)
+        len = strlen(str);
+    len += strlen(s2) + 1 * sizeof(*s2);
+    s = realloc(str, len);
+    strcat(s, s2);
+    return s;
+}
+
+void send_data(int socket_, char* action, char* data){
+    char* buf = multiple(NULL, "");
+
+    multiple(buf, action);
+    multiple(buf, "\n");
+    multiple(buf, data);
+    write(socket_, buf, strlen(buf));
+    free(data);
+    free(buf);
+}
+
+char* getRooms(){
+    char* buf = multiple(NULL, "");
+    foreach(struct room room, rooms){
+        multiple(buf, room.name);
+        multiple(buf, ",");
+    }
+    buf[strlen(buf)-1] = 0;
+    return buf;
+}
+
 void *ThreadBehavior(void *t_data)
 {
     pthread_detach(pthread_self());
     struct thread_data_t *th_data = (struct thread_data_t*)t_data;
     char buf[1000];
+    char action[30], data[100];
     while(1){
         read(th_data->connection_socket_descriptor, buf, 300);
 
         if(!buf[0])
             break;
 
-        foreach(int con, connections) {
-                if(con != th_data->connection_socket_descriptor)
-                    write(con, buf, 300);
-            }
+        sscanf(buf, "%s\n%s", action, data);
+        printf("action: %s\n", action);
+        if(isAction(action, "getRooms")){
+            send_data(th_data->connection_socket_descriptor, "rooms", getRooms());
+        }else{
+            foreach(struct connection con, connections) {
+                    if(con.connection_socket_descriptor != th_data->connection_socket_descriptor)
+                        send_data(con.connection_socket_descriptor, "fen", buf);
+                }
+        }
+
     }
 
     free(th_data);
@@ -66,9 +130,11 @@ int main(int argc, char* argv[])
     int bind_result;
     int listen_result;
     char reuse_addr_val = 1;
+    int server_port = 9000;
     struct sockaddr_in server_address;
 
     connections = vector_create();
+    rooms = vector_create();
     //inicjalizacja gniazda serwera
 
     memset(&server_address, 0, sizeof(struct sockaddr));
@@ -82,13 +148,12 @@ int main(int argc, char* argv[])
         fprintf(stderr, "%s: Błąd przy próbie utworzenia gniazda..\n", argv[0]);
         exit(1);
     }
-    setsockopt(server_socket_descriptor, SOL_SOCKET, SO_REUSEADDR, (char*)&reuse_addr_val, sizeof(reuse_addr_val));
+    setsockopt(server_socket_descriptor, SOL_SOCKET, SO_BROADCAST, (char*)&reuse_addr_val, sizeof(reuse_addr_val));
 
-    bind_result = bind(server_socket_descriptor, (struct sockaddr*)&server_address, sizeof(struct sockaddr));
-    if (bind_result < 0)
+    while (bind(server_socket_descriptor, (struct sockaddr*)&server_address, sizeof(struct sockaddr)) < 0)
     {
-        fprintf(stderr, "%s: Błąd przy próbie dowiązania adresu IP i numeru portu do gniazda.\n", argv[0]);
-        exit(1);
+        server_address.sin_port = htons(++server_port);
+        fprintf(stderr, "%s: Błąd przy próbie dowiązania adresu IP i numeru portu do gniazda.\n Nowy port: %d", argv[0], server_port);
     }
 
     listen_result = listen(server_socket_descriptor, QUEUE_SIZE);
@@ -97,8 +162,16 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
+    struct room room_;
+    room_.connections = vector_create();
+    strcpy(room_.name, "Default");
+    vector_add(&rooms, room_);
+
     while(1)
     {
+        struct connection connection;
+        connection.connection_socket_descriptor = connection_socket_descriptor;
+
         connection_socket_descriptor = accept(server_socket_descriptor, NULL, NULL);
         printf("Nowe polaczenie\n");
 
@@ -108,7 +181,9 @@ int main(int argc, char* argv[])
             exit(1);
         }
 
-        vector_add(&connections, connection_socket_descriptor);
+        struct connection* new_connection = vector_add_asg(&connections);
+        new_connection->connection_socket_descriptor = connection_socket_descriptor;
+        new_connection = NULL;
 
         handleConnection(connection_socket_descriptor);
 

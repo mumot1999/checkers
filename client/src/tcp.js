@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useState} from "react";
+import React, {createContext, useContext, useEffect, useState} from "react";
 import net from "net";
 
 export const client = net.createConnection(9000);
@@ -19,6 +19,13 @@ export const AppProvider = ({children}) => {
 
     const [appState, setAppState] = useState(initialState);
 
+    useEffect( () => {
+        client.on('data', function(raw_data) {
+            const [action, data] = raw_data.toString().split("\n", 2);
+            console.log('message was received', {action, data})
+        });
+    }, [])
+
     return <AppContext.Provider value={{appState, setAppState}}>
         {children}
     </AppContext.Provider>
@@ -31,6 +38,7 @@ export const useApp = () => {
         setLogin: (login) => setAppState(prev => ({...prev, login})),
         setColor: (checkerColor) => setAppState(prev => ({...prev, checkerColor})),
         login: (login) => {
+            client.write("getRooms");
             console.log({login})
             setAppState(prev => ({...prev, login, loggedIn: true}))
         },
