@@ -2,8 +2,11 @@ import {useEventHandler, View} from "@nodegui/react-nodegui";
 import React, {useEffect, useState} from "react";
 import Draughts from 'draughts';
 import {WidgetEventTypes} from "@nodegui/nodegui";
+import net from 'net';
 
 const Board = () => {
+    const client = net.createConnection(9000);
+
     const [draughts, setDraughts] = useState(Draughts());
 
     const [selected, setSelected] = useState(0);
@@ -12,6 +15,15 @@ const Board = () => {
     const getMovesForTile = (tile) => {
         return draughts.moves().filter(x => x.from == tile).map(x => x.to).filter(x => x != tile)
     }
+
+    client.on('error', function(error) {
+        console.log(error)
+    });
+
+    client.on('data', function(data) {
+        console.log('message was received', data)
+        draughts.load(data)
+    });
 
     useEffect( () => {
         draughts.load("W:W31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,9:B1")
