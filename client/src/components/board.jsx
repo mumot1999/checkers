@@ -1,5 +1,5 @@
 import {useEventHandler, View} from "@nodegui/react-nodegui";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import Draughts from 'draughts';
 import {WidgetEventTypes} from "@nodegui/nodegui";
 import net from 'net';
@@ -21,8 +21,9 @@ const Board = () => {
     });
 
     client.on('data', function(data) {
-        console.log('message was received', data)
-        draughts.load(data)
+        console.log('message was received', data.toString())
+        draughts.load(data.filter(x => x).toString())
+        setPosition(draughts.position())
     });
 
     useEffect( () => {
@@ -72,7 +73,7 @@ const Board = () => {
 const Tile = ({name, color, size=60, number, onClick, functions}) => {
     const {selected, draughts, setSelected, possibleMoves, position} = functions;
 
-    const checker = draughts.get(number)
+    const checker = useMemo(() => draughts.get(number), [position])
     const has_checker = ['b', 'w'].includes(checker.toLowerCase())
     const checker_color = checker.toLowerCase() == 'b' ? 'black' : checker.toLowerCase() == 'w' ? 'white' : '';
     const checker_opposite_color = checker.toLowerCase() == 'b' ? 'white' : 'black';
