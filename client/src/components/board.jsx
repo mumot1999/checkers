@@ -1,29 +1,51 @@
 import {useEventHandler, View} from "@nodegui/react-nodegui";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import Draughts from 'draughts';
 import {WidgetEventTypes} from "@nodegui/nodegui";
+import net from 'net';
+import {client} from "../tcp";
+import {useControlledComponent} from "../utils";
 
-const Board = () => {
+
+const Board = ({boardPosition, onChange, boardTurn, onChangeTurn}) => {
     const [draughts, setDraughts] = useState(Draughts());
 
     const [selected, setSelected] = useState(0);
-    const [position, setPosition] = useState(draughts.position());
+    const [position, setPosition] = useState(boardPosition);
+    const [turn, setTurn] = useControlledComponent(boardTurn, onChangeTurn);
 
     const getMovesForTile = (tile) => {
         return draughts.moves().filter(x => x.from == tile).map(x => x.to).filter(x => x != tile)
     }
 
+    const changePosition = (pos) => {
+        draughts.clear()
+        draughts.load(pos)
+        setPosition(draughts.fen())
+        console.log("CHANGE POSITION\n", draughts.fen())
+    }
+
     useEffect( () => {
-        draughts.load("W:W31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,9:B1")
-        setPosition(draughts.position())
+        if(boardPosition !== position)
+            changePosition(boardPosition)
+    }, [boardPosition])
+
+    useEffect( () => {
+        changePosition(position)
     }, [])
+
+    useEffect( () => {
+        if(boardPosition !== position)
+            onChange?.(position)
+    }, [position])
 
     const possibleMoves = getMovesForTile(selected)
 
     const handleTileClick = (number) => {
         if(possibleMoves?.find?.(x => x == number)){
             draughts.move({from: selected, to: number})
-            setPosition(draughts.position())
+            setPosition(draughts.fen())
+            setTurn(draughts.turn())
         }
     }
 
@@ -37,7 +59,6 @@ const Board = () => {
             {Array.from(new Array(10)).map((n_, rowNumber) =>
                 <View style={`
               flex: 1;
-              align-items: normal;
               flex-direction: row;
               `}
                 >
@@ -60,7 +81,7 @@ const Board = () => {
 const Tile = ({name, color, size=60, number, onClick, functions}) => {
     const {selected, draughts, setSelected, possibleMoves, position} = functions;
 
-    const checker = draughts.get(number)
+    const checker = useMemo(() => draughts.get(number), [position])
     const has_checker = ['b', 'w'].includes(checker.toLowerCase())
     const checker_color = checker.toLowerCase() == 'b' ? 'black' : checker.toLowerCase() == 'w' ? 'white' : '';
     const checker_opposite_color = checker.toLowerCase() == 'b' ? 'white' : 'black';
@@ -69,13 +90,10 @@ const Tile = ({name, color, size=60, number, onClick, functions}) => {
     const tileHandler = useEventHandler(
         {
             [WidgetEventTypes.MouseButtonPress]: () => {
-                console.log("CLICKED", {number, selected, possibleMoves})
                 onClick?.(number);
                 if(number && checker != 0){
-                    console.log("SELECTING", number)
                     setSelected(number)
                 }
-                console.log("mousePressed at: ", name, number, checker);
             }
         },
         [selected, possibleMoves, position]
