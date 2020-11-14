@@ -5,13 +5,18 @@ export const client = net.createConnection(9000);
 
 client.on('error', console.log)
 
+const initialFen = 'W:W31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,13:B10,11,19,20';
+
 const initialState = {
     loggedIn: false,
     login: "",
     host: 'localhost',
     port: 9000,
     checkerColor: '',
-    rooms: []
+    rooms: ["Solo"],
+    activeRoom: "Solo",
+    activeRoomBoardPosition: initialFen,
+    activeRoomTurn: "w",
 }
 
 export const AppContext = createContext({appState: initialState, setAppState: undefined});
@@ -24,9 +29,16 @@ export const AppProvider = ({children}) => {
         client.on('data', function(raw_data) {
             const [action, data] = raw_data.toString().split("\n", 2);
 
-            if(action === 'rooms'){
-                setAppState(prevState => ({...prevState, rooms: data?.split(',') ?? []}))
+            const handleActions = {
+                rooms: () => {
+                    setAppState(prevState => ({...prevState, rooms: ["Solo", ...data?.split(',')]}))
+                },
+                fen: () => {
+                    setAppState(prevState => ({...prevState, activeRoomBoardPosition: data}))
+                },
             }
+
+            handleActions?.[action]?.();
             console.log('message was received', {action, data})
         });
     }, [])
@@ -36,8 +48,24 @@ export const AppProvider = ({children}) => {
     </AppContext.Provider>
 }
 
+function request(action, data='') {
+    client.write(action + '\n' + data + '\0')
+}
+
 export const useApp = () => {
     const {appState, setAppState} = useContext(AppContext);
+
+    const setActiveRoomBoardPosition = (pos, turn='w') => {
+        console.log("CHANGE POSITION BACKGROUND", pos)
+        setAppState(prev => ({...prev, activeRoomBoardPosition: pos, activeRoomTurn: turn ?? 'w'}))
+
+        if(appState.activeRoom !== 'Solo'){
+            request('fen', pos);
+        }
+    }
+
+    const setActiveRoomBoardTurn = (turn) =>
+        setAppState(prev => ({...prev, activeRoomTurn: turn}))
 
     return {
         setLogin: (login) => setAppState(prev => ({...prev, login})),
@@ -47,6 +75,17 @@ export const useApp = () => {
             console.log({login})
             setAppState(prev => ({...prev, login, loggedIn: true}))
         },
+        selectRoom: (room) => {
+            if(room === "Solo"){
+                setAppState(prev => ({...prev, activeRoom: room}))
+                setActiveRoomBoardPosition(initialFen, "W")
+            }else{
+                client.write(`selectRoom\n${room}`)
+                setAppState(prev => ({...prev, activeRoom: room}))
+            }
+        },
+        setActiveRoomBoardPosition,
+        setActiveRoomBoardTurn,
         appState
     }
 }

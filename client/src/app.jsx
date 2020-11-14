@@ -1,5 +1,5 @@
 import {Text, Window, hot, View, LineEdit, Button} from "@nodegui/react-nodegui";
-import React, {useState} from "react";
+import React, {useCallback, useRef, useState} from "react";
 import { QIcon } from "@nodegui/nodegui";
 import { StepOne } from "./components/stepone";
 import { StepTwo } from "./components/steptwo";
@@ -9,13 +9,11 @@ import css, {resolve} from 'styled-jsx/css'
 // @ts-ignore
 import Board from "./components/board";
 import {AppProvider, useApp} from "./tcp";
-const minSize = { width: 500, height: 520 };
+const minSize = { width: 700, height: 700 };
 const winIcon = new QIcon(nodeguiIcon);
 
 export const App = () => {
 
-    const style = containerStyle;
-    console.log(style)
     const {appState, ...app} = useApp();
 
     const [login, setLogin] = useState("");
@@ -35,14 +33,24 @@ export const App = () => {
               flex-direction: row;
               `}>
                         <View>
-                            <Board/>
+                            <Board
+                                boardPosition={appState.activeRoomBoardPosition}
+                                onChange={app.setActiveRoomBoardPosition}
+                                onChangeTurn={app.setActiveRoomBoardTurn}
+                                boardTurn={appState.activeRoomTurn}
+                            />
                         </View>
                         <View>
                             <Text>
                                 Pokoje:
                             </Text>
                             {appState.rooms.map(room => (
-                                <Button text={room} />
+                                <Button
+                                    text={room}
+                                    style={appState.activeRoom === room ? `background-color: green; color: white` : ''}
+                                    cursor={13}
+                                    on={{clicked: () => app.selectRoom(room)}}
+                                />
                             ))}
                         </View>
                     </View>

@@ -65,7 +65,6 @@ void send_data(int socket_, char* action, char* data){
     multiple(buf, "\n");
     multiple(buf, data);
     write(socket_, buf, strlen(buf));
-    free(data);
     free(buf);
 }
 
@@ -91,14 +90,22 @@ void *ThreadBehavior(void *t_data)
         if(!buf[0])
             break;
 
+        for (int i = 0; i < 100; ++i) {
+            data[i] = 0;
+        }
+        for (int i = 0; i < 30; ++i) {
+            action[i] = 0;
+        }
+
         sscanf(buf, "%s\n%s", action, data);
         printf("action: %s\n", action);
+        printf("data: %s\n", data);
         if(isAction(action, "getRooms")){
             send_data(th_data->connection_socket_descriptor, "rooms", getRooms());
-        }else{
+        }else if(isAction(action, "fen")){
             foreach(struct connection con, connections) {
                     if(con.connection_socket_descriptor != th_data->connection_socket_descriptor)
-                        send_data(con.connection_socket_descriptor, "fen", buf);
+                        send_data(con.connection_socket_descriptor, "fen", data);
                 }
         }
 
