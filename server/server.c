@@ -28,6 +28,7 @@ struct connection
 {
     int connection_socket_descriptor;
     char login[30];
+    char room[30];
 };
 
 struct connection* connections;
@@ -71,9 +72,9 @@ void send_data(int socket_, char* action, char* data){
 char* getRooms(){
     char* buf = multiple(NULL, "");
     foreach(struct room room, rooms){
-        multiple(buf, room.name);
-        multiple(buf, ",");
-    }
+            multiple(buf, room.name);
+            multiple(buf, ",");
+        }
     buf[strlen(buf)-1] = 0;
     return buf;
 }
@@ -84,31 +85,66 @@ void *ThreadBehavior(void *t_data)
     struct thread_data_t *th_data = (struct thread_data_t*)t_data;
     char buf[1000];
     char action[30], data[100];
-    while(1){
-        read(th_data->connection_socket_descriptor, buf, 300);
 
-        if(!buf[0])
+    struct connection* user;
+    struct room* users_room;
+
+    while(1) {
+        users_room = 0;
+        user = 0;
+        int is_connection_open = read(th_data->connection_socket_descriptor, buf, 300);
+
+        if(is_connection_open == -1 || is_connection_open == 0){
             break;
-
-        for (int i = 0; i < 100; ++i) {
-            data[i] = 0;
-        }
-        for (int i = 0; i < 30; ++i) {
-            action[i] = 0;
-        }
-
-        sscanf(buf, "%s\n%s", action, data);
-        printf("action: %s\n", action);
-        printf("data: %s\n", data);
-        if(isAction(action, "getRooms")){
-            send_data(th_data->connection_socket_descriptor, "rooms", getRooms());
-        }else if(isAction(action, "fen")){
-            foreach(struct connection con, connections) {
-                    if(con.connection_socket_descriptor != th_data->connection_socket_descriptor)
-                        send_data(con.connection_socket_descriptor, "fen", data);
+        }else{
+            for (int i = 0; i < vector_size(connections); ++i) {
+                if (connections[i].connection_socket_descriptor == th_data->connection_socket_descriptor){
+                    user = &connections[i];
+                    break;
                 }
-        }
+            }
+            for (int i = 0; i < vector_size(rooms); ++i) {
+                if (!strcmp(rooms[i].name, user->room)){
+                    users_room = &rooms[i];
+                    break;
+                }
+            }
 
+            if(!buf[0])
+                break;
+
+            for (int i = 0; i < 100; ++i) {
+                data[i] = 0;
+            }
+            for (int i = 0; i < 30; ++i) {
+                action[i] = 0;
+            }
+
+            sscanf(buf, "%s\n%s", action, data);
+            printf("action: %s\n", action);
+            printf("data: %s\n", data);
+            if(isAction(action, "getRooms")){
+                send_data(th_data->connection_socket_descriptor, "rooms", getRooms());
+            }else if(isAction(action, "fen")){
+                if(users_room){
+                    strcpy(users_room->fen, data);
+                    foreach(struct connection con, connections) {
+                            if(con.connection_socket_descriptor != th_data->connection_socket_descriptor
+                               && !strcmp(con.room, user->room)
+                                    ){
+                                send_data(con.connection_socket_descriptor, "fen", data);
+                            }
+                        }
+                }
+            }else if(isAction(action, "selectRoom")){
+                strcpy(user->room, &data[0]);
+                foreach(struct room room, rooms){
+                        if(!strcmp(room.name, data)){
+                            send_data(user->connection_socket_descriptor, "fen", room.fen);
+                        }
+                    }
+            }
+        }
     }
 
     free(th_data);

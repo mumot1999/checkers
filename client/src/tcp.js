@@ -25,23 +25,29 @@ export const AppProvider = ({children}) => {
 
     const [appState, setAppState] = useState(initialState);
 
+    useEffect( () => request('selectRoom', appState.activeRoom), [appState.activeRoom]);
+    useEffect( () => request('fen', appState.activeRoomBoardPosition), [appState.activeRoomBoardPosition]);
+
     useEffect( () => {
+        client.removeAllListeners('data');
         client.on('data', function(raw_data) {
-            const [action, data] = raw_data.toString().split("\n", 2);
+            const [action, data] = raw_data.filter(x => (x <= 122 && x >= 32) || x === 10).toString().split("\n", 2);
 
             const handleActions = {
                 rooms: () => {
                     setAppState(prevState => ({...prevState, rooms: ["Solo", ...data?.split(',')]}))
                 },
                 fen: () => {
-                    setAppState(prevState => ({...prevState, activeRoomBoardPosition: data}))
+                    if(appState.activeRoom !== 'Solo')
+                        setAppState(prevState => ({...prevState, activeRoomBoardPosition: data}))
                 },
             }
 
             handleActions?.[action]?.();
             console.log('message was received', {action, data})
         });
-    }, [])
+        return () => client.removeAllListeners('data');
+    }, [appState])
 
     return <AppContext.Provider value={{appState, setAppState}}>
         {children}
@@ -58,10 +64,6 @@ export const useApp = () => {
     const setActiveRoomBoardPosition = (pos, turn='w') => {
         console.log("CHANGE POSITION BACKGROUND", pos)
         setAppState(prev => ({...prev, activeRoomBoardPosition: pos, activeRoomTurn: turn ?? 'w'}))
-
-        if(appState.activeRoom !== 'Solo'){
-            request('fen', pos);
-        }
     }
 
     const setActiveRoomBoardTurn = (turn) =>
@@ -80,7 +82,6 @@ export const useApp = () => {
                 setAppState(prev => ({...prev, activeRoom: room}))
                 setActiveRoomBoardPosition(initialFen, "W")
             }else{
-                client.write(`selectRoom\n${room}`)
                 setAppState(prev => ({...prev, activeRoom: room}))
             }
         },
