@@ -1,7 +1,13 @@
 import React, {createContext, useContext, useEffect, useState} from "react";
 import net from "net";
+import parser from 'yargs-parser'
 
-export const client = net.createConnection(9000);
+const args = parser(process.argv);
+
+export const client = net.createConnection({
+    port: args.port ?? 9000,
+    host: args.host ?? 'localhost'
+});
 
 client.on('error', console.log)
 
