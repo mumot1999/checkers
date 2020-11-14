@@ -207,8 +207,18 @@ int main(int argc, char* argv[])
 
     struct room room_;
     room_.connections = vector_create();
-    strcpy(room_.name, "Default");
-    vector_add(&rooms, room_);
+
+    struct room* new_room = vector_add_asg(&rooms);
+    strcpy(new_room->name, "Pokoj1");
+    new_room = NULL;
+
+    new_room = vector_add_asg(&rooms);
+    strcpy(new_room->name, "Pokoj2");
+    new_room = NULL;
+
+    new_room = vector_add_asg(&rooms);
+    strcpy(new_room->name, "Pokoj3");
+    new_room = NULL;
 
     while(1)
     {
