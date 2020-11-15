@@ -35,7 +35,6 @@ export const AppProvider = ({children}) => {
     const [appState, setAppState] = useState(initialState);
 
     useEffect( () => request('selectRoom', appState.activeRoom), [appState.activeRoom]);
-    useEffect( () => request('fen', appState.activeRoomBoardPosition), [appState.activeRoomBoardPosition]);
     useEffect( () => request('selectColor', appState.selectedColor), [appState.selectedColor]);
 
     useEffect( () => {
@@ -82,6 +81,7 @@ export const useApp = () => {
     const setActiveRoomBoardPosition = (pos, turn='w') => {
         console.log("CHANGE POSITION BACKGROUND", pos)
         setAppState(prev => ({...prev, activeRoomBoardPosition: pos, activeRoomTurn: turn ?? 'w'}))
+        request('fen', pos)
     }
 
     const setActiveRoomBoardTurn = (turn) =>

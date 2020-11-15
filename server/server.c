@@ -55,21 +55,20 @@ char *multiple(char *str, char *s2)
     char *s;
     if (str != NULL)
         len = strlen(str);
-    len += strlen(s2) + 1 * sizeof(*s2);
+    len += strlen(s2) ;
+    len += 1 * sizeof(*s2);
     s = realloc(str, len);
     strcat(s, s2);
     return s;
 }
 
 void send_data(int socket_, char* action, char* data){
-    char* buf = multiple(NULL, "");
-
-    multiple(buf, action);
+    char* buf = multiple(NULL, action);
     multiple(buf, "\n");
     multiple(buf, data);
-    write(socket_, buf, strlen(buf));
     usleep(30000);
-    free(buf);
+    write(socket_, buf, strlen(buf));
+//    free(buf);
 }
 
 char* getRooms(){
@@ -179,12 +178,18 @@ void *ThreadBehavior(void *t_data)
                 send_data(th_data->connection_socket_descriptor, "rooms", getRooms());
             }else if(isAction(action, "fen")){
                 if(users_room){
-                    strcpy(users_room->fen, data);
+                    char turn = users_room->fen[0] == 'B' ? 'b' : 'w';
+                    if(users_room->white_player_socket_descriptor == user->connection_socket_descriptor){
+                        if(turn == 'w')
+                            strcpy(users_room->fen, data);
+                    }
+                    if(users_room->black_player_socket_descriptor == user->connection_socket_descriptor){
+                        if(turn == 'b')
+                            strcpy(users_room->fen, data);
+                    }
                     foreach(struct connection con, connections) {
-                            if(con.connection_socket_descriptor != th_data->connection_socket_descriptor
-                               && !strcmp(con.room, user->room)
-                                    ){
-                                send_data(con.connection_socket_descriptor, "fen", data);
+                            if(!strcmp(con.room, user->room)){
+                                send_data(con.connection_socket_descriptor, "fen", users_room->fen);
                             }
                         }
                 }
