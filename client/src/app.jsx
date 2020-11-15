@@ -9,7 +9,8 @@ import css, {resolve} from 'styled-jsx/css'
 // @ts-ignore
 import Board from "./components/board";
 import {AppProvider, useApp} from "./tcp";
-const minSize = { width: 700, height: 700 };
+import {ChangeServer} from "./components/change_server";
+const minSize = { width: 700, height: 800 };
 const winIcon = new QIcon(nodeguiIcon);
 
 function randomInt(min, max) {
@@ -30,6 +31,9 @@ export const App = () => {
             styleSheet={styleSheet}
         >
             <View style={containerStyle}>
+                <Text style={appState.connected ? "color: green;" : "color: red;"}>
+                    {appState.connected ? "Połączono" : "Brak połączenia"}</Text>
+
                 {appState.loggedIn ? (
                     <View style={`
                       flex: 1;
@@ -91,6 +95,7 @@ export const App = () => {
                         <Button text={"Zaloguj się"} style={`margin-top: 10px;`} on={{clicked: () => app.login(login)}}/>
                     </View>
                 )}
+                <ChangeServer/>
             </View>
         </Window>
     );

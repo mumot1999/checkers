@@ -9,12 +9,12 @@ export const client = net.createConnection({
     host: args.host ?? 'localhost'
 });
 
-client.on('error', console.log)
 
 const initialFen = 'W:W31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50:B1-20';
 
 const initialState = {
     loggedIn: false,
+    connected: false,
     login: "",
     host: 'localhost',
     port: 9000,
@@ -36,6 +36,27 @@ export const AppProvider = ({children}) => {
 
     useEffect( () => request('selectRoom', appState.activeRoom), [appState.activeRoom]);
     useEffect( () => request('selectColor', appState.selectedColor), [appState.selectedColor]);
+
+    useEffect( () => {
+
+        if(client.readable){
+            setAppState(prev => ({...prev, connected: true}))
+            request('getRooms');
+        }
+        else{
+            setAppState(prev => ({...prev, connected: false, rooms: ["Solo"]}))
+        }
+    }, [client.readable, client.connecting, client.writable])
+
+    useEffect( () => {
+        client.on('error', (error) => {
+            console.log({error})
+            setAppState(prev => ({...prev, connected: false}))
+        })
+    }, [])
+    // useEffect( () => {
+    //     client.on('ready', () => setAppState(prev => ({...prev, connected: true})))
+    // }, [])
 
     useEffect( () => {
         client.removeAllListeners('data');
@@ -111,6 +132,10 @@ export const useApp = () => {
         },
         setActiveRoomBoardPosition,
         setActiveRoomBoardTurn,
+        connectToServer: (host='localhost', port=9000) => {
+            setAppState(prev => ({...prev, host, port, connected: false}))
+            client.connect({host, port})
+        },
         appState
     }
 }
