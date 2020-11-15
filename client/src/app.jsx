@@ -12,11 +12,15 @@ import {AppProvider, useApp} from "./tcp";
 const minSize = { width: 700, height: 700 };
 const winIcon = new QIcon(nodeguiIcon);
 
+function randomInt(min, max) {
+    return min + Math.floor((max - min) * Math.random());
+}
+
 export const App = () => {
 
     const {appState, ...app} = useApp();
 
-    const [login, setLogin] = useState("");
+    const [login, setLogin] = useState(`${randomInt(1000000, 9999999)}`);
 
     return (
         <Window
@@ -33,12 +37,27 @@ export const App = () => {
               flex-direction: row;
               `}>
                         <View>
+                            {appState.blackPlayer ? (
+                                <Text>
+                                    {appState.blackPlayer}
+                                </Text>
+                            ) : (
+                                <Button text={"Graj jako czarny"} on={{clicked: () => app.selectColor('black')}}/>
+                            )}
                             <Board
                                 boardPosition={appState.activeRoomBoardPosition}
                                 onChange={app.setActiveRoomBoardPosition}
                                 onChangeTurn={app.setActiveRoomBoardTurn}
                                 boardTurn={appState.activeRoomTurn}
                             />
+                            {appState.whitePlayer ? (
+                                <Text>
+                                    {appState.whitePlayer}
+                                </Text>
+                            ) : (
+                                <Button text={"Graj jako biały"} on={{clicked: () => app.selectColor('white')}}/>
+                            )}
+
                         </View>
                         <View>
                             <Text>

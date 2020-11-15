@@ -23,6 +23,9 @@ const initialState = {
     activeRoom: "Solo",
     activeRoomBoardPosition: initialFen,
     activeRoomTurn: "w",
+    whitePlayer: "",
+    blackPlayer: "",
+    selectedColor: "",
 }
 
 export const AppContext = createContext({appState: initialState, setAppState: undefined});
@@ -33,6 +36,7 @@ export const AppProvider = ({children}) => {
 
     useEffect( () => request('selectRoom', appState.activeRoom), [appState.activeRoom]);
     useEffect( () => request('fen', appState.activeRoomBoardPosition), [appState.activeRoomBoardPosition]);
+    useEffect( () => request('selectColor', appState.selectedColor), [appState.selectedColor]);
 
     useEffect( () => {
         client.removeAllListeners('data');
@@ -47,6 +51,14 @@ export const AppProvider = ({children}) => {
                     if(appState.activeRoom !== 'Solo')
                         setAppState(prevState => ({...prevState, activeRoomBoardPosition: data}))
                 },
+                whitePlayer: () => {
+                    if(appState.activeRoom !== 'Solo')
+                        setAppState(prevState => ({...prevState, whitePlayer: data}))
+                },
+                blackPlayer: () => {
+                    if(appState.activeRoom !== 'Solo')
+                        setAppState(prevState => ({...prevState, blackPlayer: data}))
+                }
             }
 
             handleActions?.[action]?.();
@@ -79,6 +91,7 @@ export const useApp = () => {
         setLogin: (login) => setAppState(prev => ({...prev, login})),
         setColor: (checkerColor) => setAppState(prev => ({...prev, checkerColor})),
         login: (login) => {
+            request("login", login);
             client.write("getRooms");
             console.log({login})
             setAppState(prev => ({...prev, login, loggedIn: true}))
@@ -88,7 +101,12 @@ export const useApp = () => {
                 setAppState(prev => ({...prev, activeRoom: room}))
                 setActiveRoomBoardPosition(initialFen, "W")
             }else{
-                setAppState(prev => ({...prev, activeRoom: room}))
+                setAppState(prev => ({...prev, activeRoom: room, selectedColor: ""}))
+            }
+        },
+        selectColor: (color) => {
+            if(appState.activeRoom !== "Solo"){
+                setAppState(prev => ({...prev, selectedColor: color}))
             }
         },
         setActiveRoomBoardPosition,

@@ -22,6 +22,8 @@ struct room
     char name[30];
     char fen[200];
     struct connection* connections;
+    int black_player_socket_descriptor;
+    int white_player_socket_descriptor;
 };
 
 struct connection
@@ -66,6 +68,7 @@ void send_data(int socket_, char* action, char* data){
     multiple(buf, "\n");
     multiple(buf, data);
     write(socket_, buf, strlen(buf));
+    usleep(30000);
     free(buf);
 }
 
@@ -77,6 +80,47 @@ char* getRooms(){
         }
     buf[strlen(buf)-1] = 0;
     return buf;
+}
+
+void emitPlayersColors(struct room* room){
+    char whitePlayer[100];
+    char blackPlayer[100];
+    memset(blackPlayer,0,sizeof(blackPlayer));
+    memset(whitePlayer,0,sizeof(whitePlayer));
+
+    foreach(struct connection con, connections) {
+            if(!strcmp(con.room, room->name)){
+                if(room->white_player_socket_descriptor == con.connection_socket_descriptor){
+                    strcpy(whitePlayer, con.login);
+                }else if(room->black_player_socket_descriptor == con.connection_socket_descriptor){
+                    strcpy(blackPlayer, con.login);
+                }
+            }
+        }
+    foreach(struct connection con, connections) {
+            if(!strcmp(con.room, room->name)){
+                send_data(con.connection_socket_descriptor, "whitePlayer", whitePlayer);
+                send_data(con.connection_socket_descriptor, "blackPlayer", blackPlayer);
+            }
+        }
+
+
+}
+
+void clean_user_room(struct connection* user){
+    struct room* room;
+    for (int i = 0; i < vector_size(rooms); ++i) {
+        if (!strcmp(rooms[i].name, user->room)){
+            room = &(rooms[i]);
+            if(room->black_player_socket_descriptor == user->connection_socket_descriptor){
+                room->black_player_socket_descriptor = 0;
+            }else if(room->white_player_socket_descriptor == user->connection_socket_descriptor){
+                room->white_player_socket_descriptor = 0;
+            }
+            emitPlayersColors(room);
+            break;
+        }
+    }
 }
 
 void *ThreadBehavior(void *t_data)
@@ -94,21 +138,29 @@ void *ThreadBehavior(void *t_data)
         user = 0;
         int is_connection_open = read(th_data->connection_socket_descriptor, buf, 300);
 
+        for (int i = 0; i < vector_size(connections); ++i) {
+            if (connections[i].connection_socket_descriptor == th_data->connection_socket_descriptor){
+                user = &connections[i];
+                break;
+            }
+        }
+        for (int i = 0; i < vector_size(rooms); ++i) {
+            if (!strcmp(rooms[i].name, user->room)){
+                users_room = &rooms[i];
+                break;
+            }
+        }
+
         if(is_connection_open == -1 || is_connection_open == 0){
+            for (int i = 0; i < vector_size(connections); ++i) {
+                if(connections[i].connection_socket_descriptor == user->connection_socket_descriptor){
+                    vector_remove(connections, i);
+                }
+            }
+            clean_user_room(user);
             break;
         }else{
-            for (int i = 0; i < vector_size(connections); ++i) {
-                if (connections[i].connection_socket_descriptor == th_data->connection_socket_descriptor){
-                    user = &connections[i];
-                    break;
-                }
-            }
-            for (int i = 0; i < vector_size(rooms); ++i) {
-                if (!strcmp(rooms[i].name, user->room)){
-                    users_room = &rooms[i];
-                    break;
-                }
-            }
+
 
             if(!buf[0])
                 break;
@@ -137,12 +189,30 @@ void *ThreadBehavior(void *t_data)
                         }
                 }
             }else if(isAction(action, "selectRoom")){
+                clean_user_room(user);
                 strcpy(user->room, &data[0]);
                 foreach(struct room room, rooms){
                         if(!strcmp(room.name, data)){
                             send_data(user->connection_socket_descriptor, "fen", room.fen);
+                            emitPlayersColors(&room);
                         }
                     }
+            }else if(isAction(action, "selectColor")){
+                if(users_room){
+                    clean_user_room(user);
+                    if(isAction(data, "black")){
+                        if(users_room->black_player_socket_descriptor == 0){
+                            users_room->black_player_socket_descriptor = user->connection_socket_descriptor;
+                        }
+                    }else if(isAction(data, "white")){
+                        if(users_room->white_player_socket_descriptor == 0){
+                            users_room->white_player_socket_descriptor = user->connection_socket_descriptor;
+                        }
+                    }
+                    emitPlayersColors(users_room);
+                }
+            }else if(isAction(action, "login")){
+                strcpy(user->login, &data[0]);
             }
         }
     }
