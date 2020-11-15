@@ -11,7 +11,7 @@ export const client = net.createConnection({
 
 client.on('error', console.log)
 
-const initialFen = 'W:W31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,13:B10,11,19,20';
+const initialFen = 'W:W31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50:B1-20';
 
 const initialState = {
     loggedIn: false,
@@ -48,7 +48,7 @@ export const AppProvider = ({children}) => {
                 },
                 fen: () => {
                     if(appState.activeRoom !== 'Solo')
-                        setAppState(prevState => ({...prevState, activeRoomBoardPosition: data}))
+                        setAppState(prevState => ({...prevState, activeRoomBoardPosition: data, activeRoomTurn: data[0]?.toLowerCase() ?? 'w'}))
                 },
                 whitePlayer: () => {
                     if(appState.activeRoom !== 'Solo')

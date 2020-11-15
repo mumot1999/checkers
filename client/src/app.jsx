@@ -38,8 +38,9 @@ export const App = () => {
               `}>
                         <View>
                             {appState.blackPlayer ? (
-                                <Text>
+                                <Text style={appState.activeRoomTurn.toLowerCase() === 'b' ? 'font-weight: bold;' : ''}>
                                     {appState.blackPlayer}
+                                    {appState.selectedColor == 'black' ? "(ty)" : ''}
                                 </Text>
                             ) : (
                                 <Button text={"Graj jako czarny"} on={{clicked: () => app.selectColor('black')}}/>
@@ -51,8 +52,9 @@ export const App = () => {
                                 boardTurn={appState.activeRoomTurn}
                             />
                             {appState.whitePlayer ? (
-                                <Text>
+                                <Text style={appState.activeRoomTurn.toLowerCase() === 'w' ? 'font-weight: bold;' : ''}>
                                     {appState.whitePlayer}
+                                    {appState.selectedColor == 'white' ? "(ty)" : ''}
                                 </Text>
                             ) : (
                                 <Button text={"Graj jako biały"} on={{clicked: () => app.selectColor('white')}}/>
